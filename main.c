@@ -67,14 +67,49 @@ typedef enum { CW, CCW, STOP} Direction;
 
 int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
 
+volatile Direction current_direction = CW;
+
+
 
 
 APP_TIMER_DEF(my_pilot_light);
+APP_TIMER_DEF(circle_timer);
 
 void blink_pilot_light(void *p_context)
 {
-    nrf_gpio_pin_toggle (ARDUINO_0_PIN);
-    NRF_LOG_INFO("pilot light");
+  nrf_gpio_pin_toggle (ARDUINO_0_PIN);
+  NRF_LOG_INFO("toggle pilot light");
+}
+
+
+
+void update_circle(void *p_context)
+{
+  static int i = 0;
+  static int count = 0;
+
+  NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
+  bsp_board_led_invert(leds[i]);
+
+  switch (current_direction) {
+      case CW:
+        i += 1;
+        break;
+      case CCW:
+        i -= 1;
+        break;
+      case STOP:
+    // no change in position, just flash the LED
+      default:
+        break;
+  }
+
+  if (i < 0) {
+    i = (LEDS_NUMBER-1);
+  }
+  if (i >= LEDS_NUMBER) {
+    i = 0;
+  }
 }
 
 
@@ -109,7 +144,14 @@ static void timers_init(void)
     err_code = app_timer_create(&my_pilot_light, APP_TIMER_MODE_REPEATED, blink_pilot_light);
     APP_ERROR_CHECK(err_code);
 
+    err_code = app_timer_create(&circle_timer, APP_TIMER_MODE_REPEATED, update_circle);
+    APP_ERROR_CHECK(err_code);
+
+
     err_code = app_timer_start(my_pilot_light, APP_TIMER_TICKS(1000), NULL);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = app_timer_start(circle_timer, APP_TIMER_TICKS(250), NULL);
     APP_ERROR_CHECK(err_code);
 
     NRF_LOG_INFO("timers initialized");
@@ -147,43 +189,9 @@ int main(void)
     /* Toggle LEDs. */
 
 
-    Direction current_direction = CW;
-
-    int i = 0;
-    if (current_direction == CCW) {
-      i = (LEDS_NUMBER-1);
-    }
-
-    int count = 0;
-
     while (true)
     {
         NRF_LOG_PROCESS();
-
-	NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
-	bsp_board_led_invert(leds[i]);
-
-        switch (current_direction) {
-            case CW:
-              i += 1;
-              break;
-            case CCW:
-              i -= 1;
-              break;
-            case STOP:
-              // no change in position, just flash the LED
-            default:
-              break;
-        }
-
-	if (i < 0) {
-	    i = (LEDS_NUMBER-1);
-	}
-	if (i >= LEDS_NUMBER) {
-	    i = 0;
-	}
-
-	nrf_delay_ms(500);
     }
 }
 
