@@ -1,0 +1,2 @@
+#!/bin/sh
+JLinkGDBServer -device nRF52832_xxAA -if swd -speed auto -autoconnect 1
