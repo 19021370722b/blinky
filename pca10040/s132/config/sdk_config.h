@@ -48,6 +48,12 @@
 #endif
 // <h> nRF_Libraries
 
+
+// <q> NRF_FPRINTF_ENABLED  - nrf_fprintf - fprintf function.
+#ifndef NRF_FPRINTF_ENABLED
+#define NRF_FPRINTF_ENABLED 1
+#endif
+
 //==========================================================
 // <e> NRF_BALLOC_ENABLED - nrf_balloc - Block allocator module
 //==========================================================
