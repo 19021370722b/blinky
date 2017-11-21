@@ -53,14 +53,32 @@
 #include "nrf_delay.h"
 #include "boards.h"
 
+#include "nrf_drv_clock.h"
+#include "app_timer.h"
+
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "nrf_sdh.h"
 
-typedef enum { CW, CCW } Direction;
+
+typedef enum { CW, CCW, STOP} Direction;
 
 int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
+
+
+
+APP_TIMER_DEF(my_pilot_light);
+
+void blink_pilot_light(void *p_context)
+{
+    nrf_gpio_pin_toggle (ARDUINO_0_PIN);
+    NRF_LOG_INFO("pilot light");
+}
+
+
+
 
 /**@brief Function for initializing the nrf log module.
  */
@@ -73,6 +91,32 @@ static void log_init(void)
 }
 
 
+static void timers_init(void)
+{
+  ret_code_t err_code;
+
+  err_code = nrf_drv_clock_init();
+  APP_ERROR_CHECK(err_code);
+
+  nrf_drv_clock_lfclk_request(NULL);
+
+    // Initialize timer module.
+    err_code = app_timer_init();
+    APP_ERROR_CHECK(err_code);
+
+    // Create timers.
+
+    err_code = app_timer_create(&my_pilot_light, APP_TIMER_MODE_REPEATED, blink_pilot_light);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = app_timer_start(my_pilot_light, APP_TIMER_TICKS(1000), NULL);
+    APP_ERROR_CHECK(err_code);
+
+    NRF_LOG_INFO("timers initialized");
+}
+
+
+
 /**
  * @brief Function for application main entry.
  */
@@ -81,24 +125,37 @@ int main(void)
     log_init();
     NRF_LOG_INFO("start of blinky app");
 
+    if (nrf_sdh_is_enabled()) {
+      NRF_LOG_INFO("SoftDevice is enabled");
+    }
+    else {
+      NRF_LOG_INFO("SoftDevice is NOT enabled");
+    }
+
+
     /* Configure board. */
     bsp_board_leds_init();
     for (int i = 0; i < LEDS_NUMBER; i++) {
 	bsp_board_led_off(i);
     }
 
+    nrf_gpio_cfg_output(ARDUINO_0_PIN);
+    nrf_gpio_pin_write(ARDUINO_0_PIN, LEDS_ACTIVE_STATE ? 1 : 0);
+
+    timers_init();
+
     /* Toggle LEDs. */
 
 
-    Direction current_direction = CCW;
+    Direction current_direction = CW;
 
     int i = 0;
     if (current_direction == CCW) {
       i = (LEDS_NUMBER-1);
     }
 
-
     int count = 0;
+
     while (true)
     {
         NRF_LOG_PROCESS();
@@ -113,6 +170,8 @@ int main(void)
             case CCW:
               i -= 1;
               break;
+            case STOP:
+              // no change in position, just flash the LED
             default:
               break;
         }

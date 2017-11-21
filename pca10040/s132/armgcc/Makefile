@@ -8,13 +8,16 @@ PROJ_DIR := ../../..
 $(OUTPUT_DIRECTORY)/nrf52832_xxaa.out: \
   LINKER_SCRIPT  := blinky_gcc_nrf52.ld
 
-NRFJPROG_DIR = $(HOME)/Programming/nordic/9.7.1/nrfjprog/
-NRFJPROG = $(NRFJPROG_DIR)nrfjprog
+NRFJPROG_DIR ?= $(HOME)/Programming/nordic/9.7.1/nrfjprog/
+NRFJPROG ?= $(NRFJPROG_DIR)nrfjprog
 
 # Source files common to all targets
 SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(SDK_ROOT)/components/boards/boards.c \
+  $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
+  $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
+  $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_backend_serial.c \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_default_backends.c \
@@ -23,10 +26,10 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/experimental_memobj/nrf_memobj.c \
   $(SDK_ROOT)/components/libraries/experimental_section_vars/nrf_section_iter.c \
   $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer.c \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
-  $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
@@ -45,6 +48,8 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/components/device \
+  $(SDK_ROOT)/components/drivers_nrf/clock \
+  $(SDK_ROOT)/components/drivers_nrf/common \
   $(SDK_ROOT)/components/drivers_nrf/delay \
   $(SDK_ROOT)/components/drivers_nrf/hal \
   $(SDK_ROOT)/components/libraries/atomic \
@@ -55,6 +60,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/experimental_memobj \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/components/libraries/strerror \
+  $(SDK_ROOT)/components/libraries/timer \
   $(SDK_ROOT)/components/libraries/util \
   $(SDK_ROOT)/components/softdevice/common \
   $(SDK_ROOT)/components/softdevice/s132/headers \
@@ -148,7 +154,7 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: flash flash_softdevice erase
+.PHONY: flash flash_softdevice flash_all erase
 
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/nrf52832_xxaa.hex
@@ -161,6 +167,10 @@ flash_softdevice:
 	@echo Flashing: s132_nrf52_5.0.0_softdevice.hex
 	$(NRFJPROG) -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_5.0.0_softdevice.hex --sectorerase
 	$(NRFJPROG) -f nrf52 --reset
+
+flash_all:
+	$(MAKE) flash_softdevice
+	$(MAKE) flash
 
 erase:
 	$(NRFJPROG) -f nrf52 --eraseall
