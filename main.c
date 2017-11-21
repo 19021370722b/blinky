@@ -58,8 +58,7 @@
 #include "nrf_log_default_backends.h"
 
 
-#define INCREMENT 0
-
+typedef enum { CW, CCW } Direction;
 
 int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
 
@@ -90,11 +89,14 @@ int main(void)
 
     /* Toggle LEDs. */
 
-#if INCREMENT
+
+    Direction current_direction = CCW;
+
     int i = 0;
-#else
-    int i = (LEDS_NUMBER-1);
-#endif
+    if (current_direction == CCW) {
+      i = (LEDS_NUMBER-1);
+    }
+
 
     int count = 0;
     while (true)
@@ -104,11 +106,16 @@ int main(void)
 	NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
 	bsp_board_led_invert(leds[i]);
 
-#if INCREMENT
-	i += 1;
-#else
-	i -= 1;
-#endif
+        switch (current_direction) {
+            case CW:
+              i += 1;
+              break;
+            case CCW:
+              i -= 1;
+              break;
+            default:
+              break;
+        }
 
 	if (i < 0) {
 	    i = (LEDS_NUMBER-1);
