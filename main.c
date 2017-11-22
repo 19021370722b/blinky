@@ -50,7 +50,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "nrf_delay.h"
+
+#include "nrf_drv_gpiote.h"
+
+
 #include "boards.h"
 
 #include "nrf_drv_clock.h"
@@ -76,10 +79,10 @@ typedef enum { CW, CCW, STOP} Direction;
 int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
 
 volatile Direction current_direction = CW;
+volatile Direction previous_direction;
 
 
-int unused_leds[] = { ARDUINO_0_PIN, ARDUINO_1_PIN, ARDUINO_2_PIN,
-		      ARDUINO_3_PIN, ARDUINO_4_PIN, ARDUINO_5_PIN,
+int unused_leds[] = { ARDUINO_0_PIN, ARDUINO_1_PIN,
 		      ARDUINO_10_PIN, ARDUINO_11_PIN, ARDUINO_12_PIN,
 		      ARDUINO_13_PIN, ARDUINO_A0_PIN, ARDUINO_A1_PIN,
 		      ARDUINO_A2_PIN, ARDUINO_A3_PIN, ARDUINO_A4_PIN,
@@ -102,7 +105,7 @@ APP_TIMER_DEF(circle_timer);
 void blink_pilot_light(void *p_context)
 {
   nrf_gpio_pin_toggle (PILOT_LIGHT);
-  NRF_LOG_INFO("toggle pilot light");
+  //NRF_LOG_INFO("toggle pilot light");
 }
 
 
@@ -110,9 +113,10 @@ void blink_pilot_light(void *p_context)
 void update_circle(void *p_context)
 {
   static int i = 0;
+#if 0
   static int count = 0;
-
   NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
+#endif
   bsp_board_led_invert(leds[i]);
 
   switch (current_direction) {
@@ -182,6 +186,83 @@ static void timers_init(void)
 }
 
 
+bool button_pressed[4] = { false, false, false, false };
+
+static void pin_event_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+{
+    bsp_board_led_invert(ARDUINO_A5_PIN);
+
+    int idx = -1;
+
+    switch (pin) {
+    case BUTTON_1:
+	idx = 0;
+	break;
+    case BUTTON_2:
+	idx = 1;
+	break;
+    case BUTTON_3:
+	idx = 2;
+	break;
+    case BUTTON_4:
+	idx = 3;
+	break;
+    }
+
+    if (idx >= 0) {
+	button_pressed[idx] = ! button_pressed[idx];
+	NRF_LOG_INFO("event button %d %s", idx, button_pressed[idx] ? "PRESSED" : "RELEASED");
+
+
+	if (idx == 0) {
+	    if (button_pressed[0]) {
+		previous_direction = current_direction;
+		current_direction = STOP;
+	    }
+	    else {
+		current_direction = (previous_direction == CW) ? CCW : CW;
+	    }
+	}
+    }
+}
+
+static void init_buttons()
+{
+    ret_code_t err_code;
+
+    if(!nrf_drv_gpiote_is_init()) {
+	err_code = nrf_drv_gpiote_init();
+	APP_ERROR_CHECK(err_code);
+
+
+	nrf_drv_gpiote_in_config_t config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
+	config.pull = NRF_GPIO_PIN_PULLUP;
+
+	err_code = nrf_drv_gpiote_in_init(BUTTON_1, &config, pin_event_handler);
+	APP_ERROR_CHECK(err_code);
+	nrf_drv_gpiote_in_event_enable(BUTTON_1, true);
+
+	err_code = nrf_drv_gpiote_in_init(BUTTON_2, &config, pin_event_handler);
+	APP_ERROR_CHECK(err_code);
+	nrf_drv_gpiote_in_event_enable(BUTTON_2, true);
+
+	err_code = nrf_drv_gpiote_in_init(BUTTON_3, &config, pin_event_handler);
+	APP_ERROR_CHECK(err_code);
+	nrf_drv_gpiote_in_event_enable(BUTTON_3, true);
+
+	err_code = nrf_drv_gpiote_in_init(BUTTON_4, &config, pin_event_handler);
+	APP_ERROR_CHECK(err_code);
+	nrf_drv_gpiote_in_event_enable(BUTTON_4, true);
+
+
+
+	NRF_LOG_INFO("nrf_drv_gpiote_init done");
+    }
+    else {
+	NRF_LOG_INFO("nrf_drv_gpiote_init already initialized");
+    }
+}
+
 
 /**
  * @brief Function for application main entry.
@@ -191,12 +272,6 @@ int main(void)
     log_init();
     NRF_LOG_INFO("start of blinky app");
 
-    if (nrf_sdh_is_enabled()) {
-      NRF_LOG_INFO("SoftDevice is enabled");
-    }
-    else {
-      NRF_LOG_INFO("SoftDevice is NOT enabled");
-    }
 
 
     /* Configure board. */
@@ -207,10 +282,18 @@ int main(void)
 
     turn_off_leds();
 
+    init_buttons();
+
     timers_init();
 
     /* Toggle LEDs. */
 
+    if (nrf_sdh_is_enabled()) {
+      NRF_LOG_INFO("SoftDevice is enabled");
+    }
+    else {
+      NRF_LOG_INFO("SoftDevice is NOT enabled");
+    }
 
     while (true)
     {
