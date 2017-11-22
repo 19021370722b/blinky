@@ -73,6 +73,9 @@
 #endif
 #endif
 
+APP_TIMER_DEF(my_pilot_light);
+APP_TIMER_DEF(circle_timer);
+
 
 typedef enum { CW, CCW, STOP} Direction;
 
@@ -80,6 +83,39 @@ int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
 
 volatile Direction current_direction = CW;
 volatile Direction previous_direction;
+
+volatile int speed = 0;
+
+
+int ticks_for_speed()
+{
+    if (speed >= 0 && speed <= 9) {
+	return 250 * (speed+1);
+    }
+    else {
+	return 1000;
+    }
+}
+
+
+void bump_speed() {
+    speed += 1;
+    if (speed > 9) {
+	speed = 0;
+    }
+
+    ret_code_t err_code;
+
+    err_code = app_timer_stop(circle_timer);
+    APP_ERROR_CHECK(err_code);
+
+    int new_time = ticks_for_speed();
+
+    err_code = app_timer_start(circle_timer, APP_TIMER_TICKS(new_time), NULL);
+    APP_ERROR_CHECK(err_code);
+
+    NRF_LOG_INFO("speed changed to %d (%d)", new_time, speed);
+}
 
 
 int unused_leds[] = { ARDUINO_0_PIN, ARDUINO_1_PIN,
@@ -99,8 +135,6 @@ void turn_off_leds()
 }
 
 
-APP_TIMER_DEF(my_pilot_light);
-APP_TIMER_DEF(circle_timer);
 
 void blink_pilot_light(void *p_context)
 {
@@ -222,6 +256,9 @@ static void pin_event_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t ac
 	    else {
 		current_direction = (previous_direction == CW) ? CCW : CW;
 	    }
+	}
+	if (idx == 1 && button_pressed[1]) {
+	    bump_speed();
 	}
     }
 }
