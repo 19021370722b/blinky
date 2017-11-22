@@ -53,7 +53,6 @@
 
 #include "nrf_drv_gpiote.h"
 
-
 #include "boards.h"
 
 #include "nrf_drv_clock.h"
@@ -76,32 +75,30 @@
 APP_TIMER_DEF(my_pilot_light);
 APP_TIMER_DEF(circle_timer);
 
+typedef enum { CW, CCW, STOP } Direction;
 
-typedef enum { CW, CCW, STOP} Direction;
-
-int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
+int leds[] = { 0, 1, 3, 2 };    // ordered in "circle" fashion from board
 
 volatile Direction current_direction = CW;
 volatile Direction previous_direction;
 
 volatile int speed = 0;
 
-
 int ticks_for_speed()
 {
     if (speed >= 0 && speed <= 9) {
-	return 250 * (speed+1);
+        return 250 * (speed + 1);
     }
     else {
-	return 1000;
+        return 1000;
     }
 }
 
-
-void bump_speed() {
+void bump_speed()
+{
     speed += 1;
     if (speed > 9) {
-	speed = 0;
+        speed = 0;
     }
 
     ret_code_t err_code;
@@ -117,65 +114,58 @@ void bump_speed() {
     NRF_LOG_INFO("speed changed to %d (%d)", new_time, speed);
 }
 
-
 int unused_leds[] = { ARDUINO_0_PIN, ARDUINO_1_PIN,
-		      ARDUINO_10_PIN, ARDUINO_11_PIN, ARDUINO_12_PIN,
-		      ARDUINO_13_PIN, ARDUINO_A0_PIN, ARDUINO_A1_PIN,
-		      ARDUINO_A2_PIN, ARDUINO_A3_PIN, ARDUINO_A4_PIN,
-		      ARDUINO_A5_PIN };
-#define NUM_UNUSED_LEDS (sizeof(unused_leds)/sizeof(unused_leds[0]))
+    ARDUINO_10_PIN, ARDUINO_11_PIN, ARDUINO_12_PIN,
+    ARDUINO_13_PIN, ARDUINO_A0_PIN, ARDUINO_A1_PIN,
+    ARDUINO_A2_PIN, ARDUINO_A3_PIN, ARDUINO_A4_PIN,
+    ARDUINO_A5_PIN
+};
 
+#define NUM_UNUSED_LEDS (sizeof(unused_leds)/sizeof(unused_leds[0]))
 
 void turn_off_leds()
 {
     for (int i = 0; i < NUM_UNUSED_LEDS; i++) {
-	nrf_gpio_cfg_output(unused_leds[i]);
-	nrf_gpio_pin_write(unused_leds[i], LEDS_ACTIVE_STATE ? 1 : 0);
+        nrf_gpio_cfg_output(unused_leds[i]);
+        nrf_gpio_pin_write(unused_leds[i], LEDS_ACTIVE_STATE ? 1 : 0);
     }
 }
 
-
-
 void blink_pilot_light(void *p_context)
 {
-  nrf_gpio_pin_toggle (PILOT_LIGHT);
-  //NRF_LOG_INFO("toggle pilot light");
+    nrf_gpio_pin_toggle(PILOT_LIGHT);
+    //NRF_LOG_INFO("toggle pilot light");
 }
-
-
 
 void update_circle(void *p_context)
 {
-  static int i = 0;
+    static int i = 0;
 #if 0
-  static int count = 0;
-  NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
+    static int count = 0;
+    NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
 #endif
-  bsp_board_led_invert(leds[i]);
+    bsp_board_led_invert(leds[i]);
 
-  switch (current_direction) {
-      case CW:
+    switch (current_direction) {
+    case CW:
         i += 1;
         break;
-      case CCW:
+    case CCW:
         i -= 1;
         break;
-      case STOP:
-    // no change in position, just flash the LED
-      default:
+    case STOP:
+        // no change in position, just flash the LED
+    default:
         break;
-  }
+    }
 
-  if (i < 0) {
-    i = (LEDS_NUMBER-1);
-  }
-  if (i >= LEDS_NUMBER) {
-    i = 0;
-  }
+    if (i < 0) {
+        i = (LEDS_NUMBER - 1);
+    }
+    if (i >= LEDS_NUMBER) {
+        i = 0;
+    }
 }
-
-
-
 
 /**@brief Function for initializing the nrf log module.
  */
@@ -187,15 +177,14 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-
 static void timers_init(void)
 {
-  ret_code_t err_code;
+    ret_code_t err_code;
 
-  err_code = nrf_drv_clock_init();
-  APP_ERROR_CHECK(err_code);
+    err_code = nrf_drv_clock_init();
+    APP_ERROR_CHECK(err_code);
 
-  nrf_drv_clock_lfclk_request(NULL);
+    nrf_drv_clock_lfclk_request(NULL);
 
     // Initialize timer module.
     err_code = app_timer_init();
@@ -209,7 +198,6 @@ static void timers_init(void)
     err_code = app_timer_create(&circle_timer, APP_TIMER_MODE_REPEATED, update_circle);
     APP_ERROR_CHECK(err_code);
 
-
     err_code = app_timer_start(my_pilot_light, APP_TIMER_TICKS(1000), NULL);
     APP_ERROR_CHECK(err_code);
 
@@ -218,7 +206,6 @@ static void timers_init(void)
 
     NRF_LOG_INFO("timers initialized");
 }
-
 
 bool button_pressed[4] = { false, false, false, false };
 
@@ -230,36 +217,35 @@ static void pin_event_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t ac
 
     switch (pin) {
     case BUTTON_1:
-	idx = 0;
-	break;
+        idx = 0;
+        break;
     case BUTTON_2:
-	idx = 1;
-	break;
+        idx = 1;
+        break;
     case BUTTON_3:
-	idx = 2;
-	break;
+        idx = 2;
+        break;
     case BUTTON_4:
-	idx = 3;
-	break;
+        idx = 3;
+        break;
     }
 
     if (idx >= 0) {
-	button_pressed[idx] = ! button_pressed[idx];
-	NRF_LOG_INFO("event button %d %s", idx, button_pressed[idx] ? "PRESSED" : "RELEASED");
+        button_pressed[idx] = !button_pressed[idx];
+        NRF_LOG_INFO("event button %d %s", idx, button_pressed[idx] ? "PRESSED" : "RELEASED");
 
-
-	if (idx == 0) {
-	    if (button_pressed[0]) {
-		previous_direction = current_direction;
-		current_direction = STOP;
-	    }
-	    else {
-		current_direction = (previous_direction == CW) ? CCW : CW;
-	    }
-	}
-	if (idx == 1 && button_pressed[1]) {
-	    bump_speed();
-	}
+        if (idx == 0) {
+            if (button_pressed[0]) {
+                previous_direction = current_direction;
+                current_direction = STOP;
+            }
+            else {
+                current_direction = (previous_direction == CW) ? CCW : CW;
+            }
+        }
+        if (idx == 1 && button_pressed[1]) {
+            bump_speed();
+        }
     }
 }
 
@@ -267,39 +253,35 @@ static void init_buttons()
 {
     ret_code_t err_code;
 
-    if(!nrf_drv_gpiote_is_init()) {
-	err_code = nrf_drv_gpiote_init();
-	APP_ERROR_CHECK(err_code);
+    if (!nrf_drv_gpiote_is_init()) {
+        err_code = nrf_drv_gpiote_init();
+        APP_ERROR_CHECK(err_code);
 
+        nrf_drv_gpiote_in_config_t config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
+        config.pull = NRF_GPIO_PIN_PULLUP;
 
-	nrf_drv_gpiote_in_config_t config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
-	config.pull = NRF_GPIO_PIN_PULLUP;
+        err_code = nrf_drv_gpiote_in_init(BUTTON_1, &config, pin_event_handler);
+        APP_ERROR_CHECK(err_code);
+        nrf_drv_gpiote_in_event_enable(BUTTON_1, true);
 
-	err_code = nrf_drv_gpiote_in_init(BUTTON_1, &config, pin_event_handler);
-	APP_ERROR_CHECK(err_code);
-	nrf_drv_gpiote_in_event_enable(BUTTON_1, true);
+        err_code = nrf_drv_gpiote_in_init(BUTTON_2, &config, pin_event_handler);
+        APP_ERROR_CHECK(err_code);
+        nrf_drv_gpiote_in_event_enable(BUTTON_2, true);
 
-	err_code = nrf_drv_gpiote_in_init(BUTTON_2, &config, pin_event_handler);
-	APP_ERROR_CHECK(err_code);
-	nrf_drv_gpiote_in_event_enable(BUTTON_2, true);
+        err_code = nrf_drv_gpiote_in_init(BUTTON_3, &config, pin_event_handler);
+        APP_ERROR_CHECK(err_code);
+        nrf_drv_gpiote_in_event_enable(BUTTON_3, true);
 
-	err_code = nrf_drv_gpiote_in_init(BUTTON_3, &config, pin_event_handler);
-	APP_ERROR_CHECK(err_code);
-	nrf_drv_gpiote_in_event_enable(BUTTON_3, true);
+        err_code = nrf_drv_gpiote_in_init(BUTTON_4, &config, pin_event_handler);
+        APP_ERROR_CHECK(err_code);
+        nrf_drv_gpiote_in_event_enable(BUTTON_4, true);
 
-	err_code = nrf_drv_gpiote_in_init(BUTTON_4, &config, pin_event_handler);
-	APP_ERROR_CHECK(err_code);
-	nrf_drv_gpiote_in_event_enable(BUTTON_4, true);
-
-
-
-	NRF_LOG_INFO("nrf_drv_gpiote_init done");
+        NRF_LOG_INFO("nrf_drv_gpiote_init done");
     }
     else {
-	NRF_LOG_INFO("nrf_drv_gpiote_init already initialized");
+        NRF_LOG_INFO("nrf_drv_gpiote_init already initialized");
     }
 }
-
 
 /**
  * @brief Function for application main entry.
@@ -309,12 +291,10 @@ int main(void)
     log_init();
     NRF_LOG_INFO("start of blinky app");
 
-
-
     /* Configure board. */
     bsp_board_leds_init();
     for (int i = 0; i < LEDS_NUMBER; i++) {
-	bsp_board_led_off(i);
+        bsp_board_led_off(i);
     }
 
     turn_off_leds();
@@ -326,14 +306,13 @@ int main(void)
     /* Toggle LEDs. */
 
     if (nrf_sdh_is_enabled()) {
-      NRF_LOG_INFO("SoftDevice is enabled");
+        NRF_LOG_INFO("SoftDevice is enabled");
     }
     else {
-      NRF_LOG_INFO("SoftDevice is NOT enabled");
+        NRF_LOG_INFO("SoftDevice is NOT enabled");
     }
 
-    while (true)
-    {
+    while (true) {
         NRF_LOG_PROCESS();
     }
 }
