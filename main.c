@@ -62,6 +62,14 @@
 
 #include "nrf_sdh.h"
 
+#ifndef PILOT_LIGHT
+#ifdef ARDUINO_0_PIN
+#define PILOT_LIGHT ARDUINO_0_PIN
+#else
+#error must define PILOT_LIGHT
+#endif
+#endif
+
 
 typedef enum { CW, CCW, STOP} Direction;
 
@@ -70,6 +78,22 @@ int leds[] = { 0, 1, 3, 2 };  // ordered in "circle" fashion from board
 volatile Direction current_direction = CW;
 
 
+int unused_leds[] = { ARDUINO_0_PIN, ARDUINO_1_PIN, ARDUINO_2_PIN,
+		      ARDUINO_3_PIN, ARDUINO_4_PIN, ARDUINO_5_PIN,
+		      ARDUINO_10_PIN, ARDUINO_11_PIN, ARDUINO_12_PIN,
+		      ARDUINO_13_PIN, ARDUINO_A0_PIN, ARDUINO_A1_PIN,
+		      ARDUINO_A2_PIN, ARDUINO_A3_PIN, ARDUINO_A4_PIN,
+		      ARDUINO_A5_PIN };
+#define NUM_UNUSED_LEDS (sizeof(unused_leds)/sizeof(unused_leds[0]))
+
+
+void turn_off_leds()
+{
+    for (int i = 0; i < NUM_UNUSED_LEDS; i++) {
+	nrf_gpio_cfg_output(unused_leds[i]);
+	nrf_gpio_pin_write(unused_leds[i], LEDS_ACTIVE_STATE ? 1 : 0);
+    }
+}
 
 
 APP_TIMER_DEF(my_pilot_light);
@@ -77,7 +101,7 @@ APP_TIMER_DEF(circle_timer);
 
 void blink_pilot_light(void *p_context)
 {
-  nrf_gpio_pin_toggle (ARDUINO_0_PIN);
+  nrf_gpio_pin_toggle (PILOT_LIGHT);
   NRF_LOG_INFO("toggle pilot light");
 }
 
@@ -181,8 +205,7 @@ int main(void)
 	bsp_board_led_off(i);
     }
 
-    nrf_gpio_cfg_output(ARDUINO_0_PIN);
-    nrf_gpio_pin_write(ARDUINO_0_PIN, LEDS_ACTIVE_STATE ? 1 : 0);
+    turn_off_leds();
 
     timers_init();
 
