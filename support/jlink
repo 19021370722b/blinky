@@ -1,2 +1,24 @@
 #!/bin/sh
-JLinkExe -device nRF52832_xxAA -if swd -speed auto -autoconnect 1
+
+DEV=$1
+
+if [ "$DEV" = "DK" ]
+then
+    SN=682362598
+    PORT=19021
+elif [ "$DEV" = "BKT1" ]
+then
+    SN=260101321
+    PORT=19022
+else
+    :
+fi
+
+if [ -z "$SN" ]
+then
+    echo "Must specify which dev to use (DK, BKT1)"
+    exit 1
+fi
+
+
+JLinkExe -ExitOnError 1 -RTTTelnetPort $PORT -SelectEmuBySN "$SN" -device nRF52832_xxAA -if swd -speed auto -autoconnect 1

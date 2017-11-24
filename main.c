@@ -65,19 +65,13 @@
 #include "nrf_sdh.h"
 
 #ifndef PILOT_LIGHT
-#ifdef ARDUINO_0_PIN
-#define PILOT_LIGHT ARDUINO_0_PIN
-#else
 #error must define PILOT_LIGHT
-#endif
 #endif
 
 APP_TIMER_DEF(my_pilot_light);
 APP_TIMER_DEF(circle_timer);
 
 typedef enum { CW, CCW, STOP } Direction;
-
-int leds[] = { 0, 1, 3, 2 };    // ordered in "circle" fashion from board
 
 volatile Direction current_direction = CW;
 volatile Direction previous_direction;
@@ -114,12 +108,7 @@ void bump_speed()
     NRF_LOG_INFO("speed changed to %d (%d)", new_time, speed);
 }
 
-int unused_leds[] = { ARDUINO_0_PIN, ARDUINO_1_PIN,
-    ARDUINO_10_PIN, ARDUINO_11_PIN, ARDUINO_12_PIN,
-    ARDUINO_13_PIN, ARDUINO_A0_PIN, ARDUINO_A1_PIN,
-    ARDUINO_A2_PIN, ARDUINO_A3_PIN, ARDUINO_A4_PIN,
-    ARDUINO_A5_PIN
-};
+int unused_leds[] = { };
 
 #define NUM_UNUSED_LEDS (sizeof(unused_leds)/sizeof(unused_leds[0]))
 
@@ -139,12 +128,14 @@ void blink_pilot_light(void *p_context)
 
 void update_circle(void *p_context)
 {
+
     static int i = 0;
 #if 0
     static int count = 0;
-    NRF_LOG_INFO("about to invert %d, tick %d", leds[i], ++count);
+    NRF_LOG_INFO("in update circle (count=%d) LED %d is %d", count, 4, bsp_board_led_idx_to_pin(4));
+    NRF_LOG_INFO("about to invert i=%d, %d, tick %d", i, bsp_board_led_idx_to_pin(i), ++count);
 #endif
-    bsp_board_led_invert(leds[i]);
+    bsp_board_led_invert(i);
 
     switch (current_direction) {
     case CW:
@@ -211,8 +202,6 @@ bool button_pressed[4] = { false, false, false, false };
 
 static void pin_event_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    bsp_board_led_invert(ARDUINO_A5_PIN);
-
     int idx = -1;
 
     switch (pin) {
@@ -290,12 +279,12 @@ int main(void)
 {
     log_init();
     NRF_LOG_INFO("start of blinky app");
+#ifdef TARGET_TEXT
+    NRF_LOG_INFO("running on %s", TARGET_TEXT);
+#endif
 
     /* Configure board. */
     bsp_board_leds_init();
-    for (int i = 0; i < LEDS_NUMBER; i++) {
-        bsp_board_led_off(i);
-    }
 
     turn_off_leds();
 

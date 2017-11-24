@@ -1,15 +1,28 @@
 PROJECT_NAME     := blinky_pca10040_s132
-TARGETS          := nrf52832_xxaa
+TARGETS          := dk  bkt1
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT ?= $(HOME)/Programming/nordic/SDK/14.2.0_17b948a
 PROJ_DIR := ../../..
 
-$(OUTPUT_DIRECTORY)/nrf52832_xxaa.out: \
-  LINKER_SCRIPT  := blinky_gcc_nrf52.ld
+DK   := $(OUTPUT_DIRECTORY)/dk.out
+BKT1 := $(OUTPUT_DIRECTORY)/bkt1.out
+
+$(DK): LINKER_SCRIPT  := blinky_gcc_nrf52.ld
+$(DK): TARGET_NAME    = nrf52dk
+$(DK): TARGET_TEXT    := "NRF52 DK"
+$(DK): JLINK_SERIAL   :=  682362598
+
+$(BKT1): LINKER_SCRIPT  := blinky_gcc_nrf52.ld
+$(BKT1): TARGET_NAME    = bkt1
+$(BKT1): TARGET_TEXT    := "Blue Knobby BKT-1"
+all_bkt1 $(BKT1): JLINK_SERIAL   :=  260101321
 
 NRFJPROG_DIR ?= $(HOME)/Programming/nordic/9.7.1/nrfjprog/
 NRFJPROG ?= $(NRFJPROG_DIR)nrfjprog
+
+DK_SERIAL := --snr 682362598
+BKT1_SERIAL := --snr 260101321
 
 # Source files common to all targets
 SRC_FILES += \
@@ -44,8 +57,9 @@ SRC_FILES += \
 
 # Include folders common to all targets
 INC_FOLDERS += \
-  $(PROJ_DIR) \
   ../config \
+  $(PROJ_DIR)/include \
+  $(PROJ_DIR) \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/components/device \
@@ -81,9 +95,12 @@ OPT = -O3 -g3
 # Uncomment the line below to enable link time optimization
 #OPT += -flto
 
+
 # C flags common to all targets
 CFLAGS += $(OPT)
-CFLAGS += -DBOARD_PCA10040
+CFLAGS += -DBOARD_CUSTOM
+CFLAGS += -I$(PROJ_DIR)/include/$(TARGET_NAME)
+CFLAGS += -DTARGET_TEXT=\"$(TARGET_TEXT)\"
 CFLAGS += -DBSP_DEFINES_ONLY
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
@@ -139,15 +156,22 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: nrf52832_xxaa
+default: dk
+
+both: dk bkt1
 
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		nrf52832_xxaa
-	@echo		flash_softdevice
+	@echo		dk
+	@echo		flash_dk
+	@echo		flash_sd_dk
+	@echo
+	@echo		bkt1
+	@echo		flash_bkt1
+	@echo		flash_sd_bkt1
+	@echo
 	@echo		sdk_config - starting external tool for editing sdk_config.h
-	@echo		flash      - flashing binary
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
@@ -159,20 +183,35 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 .PHONY: flash flash_softdevice flash_all erase
 
 # Flash the program
-flash: $(OUTPUT_DIRECTORY)/nrf52832_xxaa.hex
+flash_dk: $(OUTPUT_DIRECTORY)/dk.hex
 	@echo Flashing: $<
-	$(NRFJPROG) -f nrf52 --program $< --sectorerase
-	$(NRFJPROG) -f nrf52 --reset
+	$(NRFJPROG) $(DK_SERIAL) -f nrf52 --program $< --sectorerase
+	$(NRFJPROG) $(DK_SERIAL) -f nrf52 --reset
+
+# Flash the program
+flash_bkt1: $(OUTPUT_DIRECTORY)/bkt1.hex
+	@echo Flashing: $<
+	$(NRFJPROG) $(BKT1_SERIAL) -f nrf52 --program $< --sectorerase
+	$(NRFJPROG) $(BKT1_SERIAL) -f nrf52 --reset
+
+
 
 # Flash softdevice
-flash_softdevice:
+flash_sd_dk:
 	@echo Flashing: s132_nrf52_5.0.0_softdevice.hex
-	$(NRFJPROG) -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_5.0.0_softdevice.hex --sectorerase
-	$(NRFJPROG) -f nrf52 --reset
+	$(NRFJPROG) $(DK_SERIAL) -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_5.0.0_softdevice.hex --sectorerase
 
-flash_all:
-	$(MAKE) flash_softdevice
-	$(MAKE) flash
+flash_sd_bkt1:
+	@echo Flashing: s132_nrf52_5.0.0_softdevice.hex
+	$(NRFJPROG) $(BKT1_SERIAL) -f nrf52 --program $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_5.0.0_softdevice.hex --sectorerase
+
+all_dk:
+	$(MAKE) flash_sd_dk
+	$(MAKE) flash_dk
+
+all_bkt1: bkt1
+	$(MAKE) flash_sd_bkt1
+	$(MAKE) flash_bkt1
 
 erase:
 	$(NRFJPROG) -f nrf52 --eraseall
