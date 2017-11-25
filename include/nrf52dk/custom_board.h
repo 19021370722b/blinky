@@ -49,7 +49,6 @@ extern "C" {
 #include "nrf_gpio.h"
 
 // LEDs definitions for PCA10040
-#define LEDS_NUMBER    8
 
 #define LED_START      17
 #define LED_1          17
@@ -66,7 +65,6 @@ extern "C" {
 
 #define LEDS_INV_MASK  LEDS_MASK
 
-#define LEDS_LIST { LED_1, LED_2, LED_3, LED_4, LED_5, LED_6, LED_7, LED_8 }
 
 #define BSP_LED_0      LED_1
 #define BSP_LED_1      LED_2
@@ -174,6 +172,12 @@ extern "C" {
 #define ARDUINO_A3_PIN              29    // Analog channel 3
 #define ARDUINO_A4_PIN              30    // Analog channel 4
 #define ARDUINO_A5_PIN              31    // Analog channel 5
+
+#define LEDS_NUMBER    14
+#define LEDS_LIST { LED_1, LED_2, LED_3, LED_4, LED_5, LED_6, LED_7, LED_8, \
+	            ARDUINO_A0_PIN, ARDUINO_A1_PIN, ARDUINO_A2_PIN, \
+                    ARDUINO_A3_PIN, ARDUINO_A4_PIN, ARDUINO_A5_PIN }
+
 
 // Low frequency clock source to be used by the SoftDevice
 #define NRF_CLOCK_LFCLKSRC      {.source       = NRF_CLOCK_LF_SRC_XTAL,      \

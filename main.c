@@ -78,7 +78,7 @@ volatile int speed = 0;
 int ticks_for_speed()
 {
     if (speed >= 0 && speed <= 9) {
-        return 250 * (speed + 1);
+        return (500/LEDS_NUMBER) * (speed + 1);
     }
     else {
         return 1000;
