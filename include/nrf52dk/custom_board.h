@@ -62,8 +62,6 @@ extern "C" {
 #define LED_8          25
 #define LED_STOP       25
 
-#define PILOT_LIGHT    11
-
 #define LEDS_ACTIVE_STATE 0
 
 #define LEDS_INV_MASK  LEDS_MASK

@@ -98,12 +98,12 @@ extern "C" {
 #define I2C_SCL                     26
 #define I2C_SDA                     25
 
-#define LEDS_NUMBER 10
-#define LEDS_LIST   { BK_LED_BRAKE, PILOT_LIGHT, BK_LED_1, BK_LED_2, BK_LED_3, \
+#define LEDS_NUMBER 8
+#define LEDS_LIST   { BK_LED_1, BK_LED_2, BK_LED_3, \
                       BK_LED_4, BK_LED_5, BK_LED_6, BK_LED_7, BK_LED_8 }
 
 #define BUTTONS_NUMBER 4
-#define BUTTONS_LIST { BK_DIRECTION_LEFT, BK_DIRECTION_RIGHT, BK_BUTTON_1, BK_BUTTON_2 }
+#define BUTTONS_LIST { BK_BUTTON_1, BK_BUTTON_2, BK_DIRECTION_LEFT, BK_DIRECTION_RIGHT }
 
 
 #define LEDS_ACTIVE_STATE 1
