@@ -51,11 +51,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "app_scheduler.h"
+
 #include "nrf_drv_gpiote.h"
 
 #include "boards.h"
 
 #include "nrf_drv_clock.h"
+#include "nrf_pwr_mgmt.h"
+#include "nrf_drv_power.h"
+
 #include "app_timer.h"
 
 #include "nrf_log.h"
@@ -65,6 +70,12 @@
 #include "nrf_sdh.h"
 
 #include "pilot_light.h"
+#include "control_adc.h"
+
+
+#define SCHED_MAX_EVENT_DATA_SIZE   MAX(APP_TIMER_SCHED_EVENT_DATA_SIZE, 0) /**< Maximum size of scheduler events. */
+#define SCHED_QUEUE_SIZE            60  /**< Maximum number of events in the scheduler queue. */
+
 
 APP_TIMER_DEF(circle_timer);
 
@@ -78,9 +89,8 @@ volatile int speed = 0;
 int ticks_for_speed()
 {
     if (speed >= 0 && speed <= 9) {
-        return (500/LEDS_NUMBER) * (speed + 1);
-    }
-    else {
+        return (500 / LEDS_NUMBER) * (speed + 1);
+    } else {
         return 1000;
     }
 }
@@ -124,19 +134,20 @@ static int next_led = 0;
 void update_circle(void *p_context)
 {
 
-    static int next_led= 0;
+    static int next_led = 0;
 #if 0
     static int count = 0;
-    NRF_LOG_INFO("about to invert i=%d, %d, tick %d", next_led, bsp_board_led_idx_to_pin(next_led), ++count);
+    NRF_LOG_INFO("about to invert i=%d, %d, tick %d", next_led, bsp_board_led_idx_to_pin(next_led),
+                 ++count);
 #endif
     bsp_board_led_invert(next_led);
 
     switch (current_direction) {
     case CW:
-        next_led+= 1;
+        next_led += 1;
         break;
     case CCW:
-        next_led-= 1;
+        next_led -= 1;
         break;
     case STOP:
         // no change in position, just flash the LED
@@ -144,11 +155,11 @@ void update_circle(void *p_context)
         break;
     }
 
-    if (next_led< 0) {
-        next_led= (LEDS_NUMBER - 1);
+    if (next_led < 0) {
+        next_led = (LEDS_NUMBER - 1);
     }
-    if (next_led>= LEDS_NUMBER) {
-        next_led= 0;
+    if (next_led >= LEDS_NUMBER) {
+        next_led = 0;
     }
 }
 
@@ -170,6 +181,9 @@ static void timers_init(void)
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_clock_lfclk_request(NULL);
+
+    NRF_LOG_INFO("APP_SCHED_INIT(%d, %d)", SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+    APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 
     // Initialize timer module.
     err_code = app_timer_init();
@@ -193,10 +207,9 @@ uint32_t time_delta(uint32_t start, uint32_t end)
     uint32_t delta;
 
     if (start <= end) {
-	delta = end - start;
-    }
-    else {
-	delta = (UINT32_MAX - start) + end;
+        delta = end - start;
+    } else {
+        delta = (UINT32_MAX - start) + end;
     }
 
     return delta;
@@ -216,48 +229,46 @@ static void pin_event_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t ac
     uint32_t t = app_timer_cnt_get();
 
     if (pin == last_button_pressed) {
-	uint32_t delta = time_delta(last_button_press_time, t);
-	if (delta < APP_TIMER_TICKS(50)) {
-	    // NRF_LOG_INFO("button bounce %d: %d", pin, delta);
-	    return;
-	}
-    }
-    else {
-	last_button_pressed = pin;
+        uint32_t delta = time_delta(last_button_press_time, t);
+        if (delta < APP_TIMER_TICKS(50)) {
+            // NRF_LOG_INFO("button bounce %d: %d", pin, delta);
+            return;
+        }
+    } else {
+        last_button_pressed = pin;
     }
 
-    NRF_LOG_INFO("button press %d (since last button: %d)", t, time_delta(last_button_press_time,t));
+    NRF_LOG_INFO("button press %d (since last button: %d)", t,
+                 time_delta(last_button_press_time, t));
     last_button_press_time = t;
 
     idx = bsp_board_pin_to_button_idx(pin);
 
     if (idx != 0xFFFFFFFF) {
-	//button_pressed[idx] = !button_pressed[idx]
-	int set = nrf_gpio_pin_read(pin) == BUTTONS_ACTIVE_STATE;
+        //button_pressed[idx] = !button_pressed[idx]
+        int set = nrf_gpio_pin_read(pin) == BUTTONS_ACTIVE_STATE;
 
-	if (set == button_pressed[idx]) {
-	    NRF_LOG_INFO("***** REPEAT SETTING *****");
-	}
+        if (set == button_pressed[idx]) {
+            NRF_LOG_INFO("***** REPEAT SETTING *****");
+        }
 
-	button_pressed[idx] = set;
-        NRF_LOG_INFO("event button pin:%d set:%d idx:%d: %d => %s", pin, set, idx, button_pressed[idx], button_pressed[idx] ? "PRESSED" : "RELEASED");
+        button_pressed[idx] = set;
+        NRF_LOG_INFO("event button pin:%d set:%d idx:%d: %d => %s", pin, set, idx,
+                     button_pressed[idx], button_pressed[idx] ? "PRESSED" : "RELEASED");
 
-	if (button_pressed[0] && button_pressed[1]) {
-	    for (int i = 0; i < LEDS_NUMBER; i++) {
-		bsp_board_led_off(i);
-		next_led = (current_direction == CW) ? 0 : LEDS_NUMBER;
-	    }
-	}
-        else if (idx == 0) {
+        if (button_pressed[0] && button_pressed[1]) {
+            for (int i = 0; i < LEDS_NUMBER; i++) {
+                bsp_board_led_off(i);
+                next_led = (current_direction == CW) ? 0 : LEDS_NUMBER;
+            }
+        } else if (idx == 0) {
             if (button_pressed[0]) {
                 previous_direction = current_direction;
                 current_direction = STOP;
-            }
-            else {
+            } else {
                 current_direction = (previous_direction == CW) ? CCW : CW;
             }
-        }
-        else if (idx == 1 && button_pressed[1]) {
+        } else if (idx == 1 && button_pressed[1]) {
             bump_speed();
         }
 
@@ -276,29 +287,29 @@ static void init_buttons()
         err_code = nrf_drv_gpiote_init();
         APP_ERROR_CHECK(err_code);
 
-	bsp_board_buttons_init();
+        bsp_board_buttons_init();
 
-	nrf_drv_gpiote_in_config_t config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
-	config.pull = NRF_GPIO_PIN_PULLUP;
+        nrf_drv_gpiote_in_config_t config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
+        config.pull = NRF_GPIO_PIN_PULLUP;
 
-	for (int i = 0; i < BUTTONS_NUMBER; i++) {
-	    int pin = bsp_board_button_idx_to_pin(i);
+        for (int i = 0; i < BUTTONS_NUMBER; i++) {
+            int pin = bsp_board_button_idx_to_pin(i);
 
-	    button_pressed[i] = bsp_board_button_state_get(i);
+            button_pressed[i] = bsp_board_button_state_get(i);
 
-	    err_code = nrf_drv_gpiote_in_init(pin, &config, pin_event_handler);
-	    APP_ERROR_CHECK(err_code);
-	    nrf_drv_gpiote_in_event_enable(pin, true);
-	}
+            err_code = nrf_drv_gpiote_in_init(pin, &config, pin_event_handler);
+            APP_ERROR_CHECK(err_code);
+            nrf_drv_gpiote_in_event_enable(pin, true);
+        }
 
         NRF_LOG_INFO("nrf_drv_gpiote_init done");
 
-	for (int i=0; i < BUTTONS_NUMBER; i++) {
-	    NRF_LOG_INFO("initial state button idx:%d pin:%d %d", i, bsp_board_button_idx_to_pin(i), button_pressed[i]);
-	}
+        for (int i = 0; i < BUTTONS_NUMBER; i++) {
+            NRF_LOG_INFO("initial state button idx:%d pin:%d %d", i, bsp_board_button_idx_to_pin(i),
+                         button_pressed[i]);
+        }
 
-    }
-    else {
+    } else {
         NRF_LOG_INFO("nrf_drv_gpiote_init already initialized");
     }
 }
@@ -323,20 +334,44 @@ int main(void)
 
     timers_init();
 
+    ret_code_t err_code = nrf_drv_power_init(NULL);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_pwr_mgmt_init();
+    APP_ERROR_CHECK(err_code);
+
     pilot_light_init();
     pilot_light_set_rate(ticks_for_speed());
+
+    control_adc_init();
+    control_adc_set_rate(100);
 
     /* Toggle LEDs. */
 
     if (nrf_sdh_is_enabled()) {
         NRF_LOG_INFO("SoftDevice is enabled");
-    }
-    else {
+    } else {
         NRF_LOG_INFO("SoftDevice is NOT enabled");
     }
 
     while (true) {
         NRF_LOG_PROCESS();
+
+        app_sched_execute();
+
+
+#if APP_TIMER_WITH_PROFILER
+        static uint8_t max_queue_size = 0;
+
+        uint8_t size = app_timer_op_queue_utilization_get();
+        if (size > max_queue_size) {
+            NRF_LOG_INFO("new op queue max size %d\n", size);
+            max_queue_size = size;
+        }
+#endif
+
+        __WFE();
+
     }
 }
 

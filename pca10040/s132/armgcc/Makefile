@@ -28,10 +28,16 @@ BKT1_SERIAL := --snr 260101321
 SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/pilot_light.c \
+  $(PROJ_DIR)/control_adc.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+  $(SDK_ROOT)/components/drivers_nrf/hal/nrf_saadc.c \
+  $(SDK_ROOT)/components/drivers_nrf/power/nrf_drv_power.c \
+  $(SDK_ROOT)/components/drivers_nrf/ppi/nrf_drv_ppi.c \
+  $(SDK_ROOT)/components/drivers_nrf/saadc/nrf_drv_saadc.c \
+  $(SDK_ROOT)/components/drivers_nrf/timer/nrf_drv_timer.c \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_backend_serial.c \
@@ -40,6 +46,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_str_formatter.c \
   $(SDK_ROOT)/components/libraries/experimental_memobj/nrf_memobj.c \
   $(SDK_ROOT)/components/libraries/experimental_section_vars/nrf_section_iter.c \
+  $(SDK_ROOT)/components/libraries/pwr_mgmt/nrf_pwr_mgmt.c \
+  $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
   $(SDK_ROOT)/components/libraries/timer/app_timer.c \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
@@ -69,6 +77,10 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/drivers_nrf/delay \
   $(SDK_ROOT)/components/drivers_nrf/gpiote \
   $(SDK_ROOT)/components/drivers_nrf/hal \
+  $(SDK_ROOT)/components/drivers_nrf/power \
+  $(SDK_ROOT)/components/drivers_nrf/ppi \
+  $(SDK_ROOT)/components/drivers_nrf/saadc \
+  $(SDK_ROOT)/components/drivers_nrf/timer \
   $(SDK_ROOT)/components/libraries/atomic \
   $(SDK_ROOT)/components/libraries/balloc \
   $(SDK_ROOT)/components/libraries/bsp \
@@ -76,6 +88,9 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/experimental_log/src \
   $(SDK_ROOT)/components/libraries/experimental_memobj \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
+  $(SDK_ROOT)/components/libraries/mutex \
+  $(SDK_ROOT)/components/libraries/pwr_mgmt \
+  $(SDK_ROOT)/components/libraries/scheduler \
   $(SDK_ROOT)/components/libraries/strerror \
   $(SDK_ROOT)/components/libraries/timer \
   $(SDK_ROOT)/components/libraries/util \

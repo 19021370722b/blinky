@@ -1,27 +1,44 @@
+#define NRF_LOG_MODULE_NAME pilot_light
+#include "nrf_log.h"
+NRF_LOG_MODULE_REGISTER();
 
 #include "nrf_gpio.h"
-#include "nrf_log.h"
 #include "boards.h"
 #include "app_timer.h"
 
 #include "pilot_light.h"
 
 
+#define MAX_TICK_COUNTER (16777216)     // (2^24)
+
+// #define this to log a message when blinking the pilot light
+#undef PILOT_LIGHT_LOG
+
 #ifdef PILOT_LIGHT
 APP_TIMER_DEF(my_pilot_light);
 
 static void pilot_light_blink(void *p_context)
 {
-    nrf_gpio_pin_toggle(PILOT_LIGHT);
-
-#if 0
-    static int last_count = 0;
+#ifdef PILOT_LIGHT_LOG
     uint32_t t = app_timer_cnt_get();
-    NRF_LOG_INFO("toggle pilot light, raw %d, elapsed %d", t, t-last_count);
+    static int last_count = 0;
+
+    uint32_t elapsed;
+    if (t > last_count) {
+        elapsed = t - last_count;
+    } else {
+        elapsed = (MAX_TICK_COUNTER - last_count) + t;
+    }
+
+    NRF_LOG_INFO("toggle, actual ticks: %d, elapsed ticks %d", t, elapsed);
+
+
     last_count = t;
 #endif
+
+    nrf_gpio_pin_toggle(PILOT_LIGHT);
 }
-#endif
+#endif                          // PILOT_LIGHT_BLINK
 
 
 ret_code_t pilot_light_set_rate(uint32_t ms)
@@ -56,10 +73,8 @@ ret_code_t pilot_light_init(void)
     APP_ERROR_CHECK(err_code);
 
     NRF_LOG_INFO("pilot light initialized");
-#else
+#else                           //
     NRF_LOG_INFO("no pilot light defined");
-
-
 #endif
 
     return err_code;

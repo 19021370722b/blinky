@@ -7,7 +7,7 @@ MEMORY
 {
   FLASH (rx) : ORIGIN = 0x23000, LENGTH = 0x5d000
   RAM (rwx) :  ORIGIN = 0x20005668, LENGTH = 0xa998
-  
+
 }
 
 SECTIONS
@@ -34,6 +34,12 @@ SECTIONS
   .mem_section_dummy_rom :
   {
   }
+  .pwr_mgmt_data :
+  {
+    PROVIDE(__start_pwr_mgmt_data = .);
+    KEEP(*(SORT(.pwr_mgmt_data*)))
+    PROVIDE(__stop_pwr_mgmt_data = .);
+  } > FLASH
   .sdh_soc_observers :
   {
     PROVIDE(__start_sdh_soc_observers = .);
@@ -64,7 +70,7 @@ SECTIONS
     KEEP(*(SORT(.sdh_stack_observers*)))
     PROVIDE(__stop_sdh_stack_observers = .);
   } > FLASH
-  
+
 
 } INSERT AFTER .text
 

@@ -48,6 +48,187 @@
 #endif
 // <h> nRF_Libraries
 
+// <e> TIMER_ENABLED - nrf_drv_timer - TIMER periperal driver
+//==========================================================
+#ifndef TIMER_ENABLED
+#define TIMER_ENABLED 1
+#endif
+// <o> TIMER_DEFAULT_CONFIG_FREQUENCY  - Timer frequency if in Timer mode
+
+// <0=> 16 MHz
+// <1=> 8 MHz
+// <2=> 4 MHz
+// <3=> 2 MHz
+// <4=> 1 MHz
+// <5=> 500 kHz
+// <6=> 250 kHz
+// <7=> 125 kHz
+// <8=> 62.5 kHz
+// <9=> 31.25 kHz
+
+#ifndef TIMER_DEFAULT_CONFIG_FREQUENCY
+#define TIMER_DEFAULT_CONFIG_FREQUENCY 0
+#endif
+
+// <o> TIMER_DEFAULT_CONFIG_MODE  - Timer mode or operation
+
+// <0=> Timer
+// <1=> Counter
+
+#ifndef TIMER_DEFAULT_CONFIG_MODE
+#define TIMER_DEFAULT_CONFIG_MODE 0
+#endif
+
+// <o> TIMER_DEFAULT_CONFIG_BIT_WIDTH  - Timer counter bit width
+
+// <0=> 16 bit
+// <1=> 8 bit
+// <2=> 24 bit
+// <3=> 32 bit
+
+#ifndef TIMER_DEFAULT_CONFIG_BIT_WIDTH
+#define TIMER_DEFAULT_CONFIG_BIT_WIDTH 0
+#endif
+
+// <o> TIMER_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
+
+
+// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
+// <0=> 0 (highest)
+// <1=> 1
+// <2=> 2
+// <3=> 3
+// <4=> 4
+// <5=> 5
+// <6=> 6
+// <7=> 7
+
+#ifndef TIMER_DEFAULT_CONFIG_IRQ_PRIORITY
+#define TIMER_DEFAULT_CONFIG_IRQ_PRIORITY 7
+#endif
+
+// <q> TIMER0_ENABLED  - Enable TIMER0 instance
+
+
+#ifndef TIMER0_ENABLED
+#define TIMER0_ENABLED 1
+#endif
+
+// <q> TIMER1_ENABLED  - Enable TIMER1 instance
+
+
+#ifndef TIMER1_ENABLED
+#define TIMER1_ENABLED 1
+#endif
+
+// <q> TIMER2_ENABLED  - Enable TIMER2 instance
+
+
+#ifndef TIMER2_ENABLED
+#define TIMER2_ENABLED 0
+#endif
+
+// <q> TIMER3_ENABLED  - Enable TIMER3 instance
+
+
+#ifndef TIMER3_ENABLED
+#define TIMER3_ENABLED 0
+#endif
+
+// <q> TIMER4_ENABLED  - Enable TIMER4 instance
+
+
+#ifndef TIMER4_ENABLED
+#define TIMER4_ENABLED 0
+#endif
+
+// </e>
+
+
+// <e> SAADC_ENABLED - nrf_drv_saadc - SAADC peripheral driver
+//==========================================================
+#ifndef SAADC_ENABLED
+#define SAADC_ENABLED 1
+#endif
+#if  SAADC_ENABLED
+// <o> SAADC_CONFIG_RESOLUTION  - Resolution
+
+// <0=> 8 bit
+// <1=> 10 bit
+// <2=> 12 bit
+// <3=> 14 bit
+
+#ifndef SAADC_CONFIG_RESOLUTION
+#define SAADC_CONFIG_RESOLUTION 1
+#endif
+
+// <o> SAADC_CONFIG_OVERSAMPLE  - Sample period
+
+// <0=> Disabled
+// <1=> 2x
+// <2=> 4x
+// <3=> 8x
+// <4=> 16x
+// <5=> 32x
+// <6=> 64x
+// <7=> 128x
+// <8=> 256x
+
+#ifndef SAADC_CONFIG_OVERSAMPLE
+#define SAADC_CONFIG_OVERSAMPLE 8
+#endif
+
+// <q> SAADC_CONFIG_LP_MODE  - Enabling low power mode
+
+
+#ifndef SAADC_CONFIG_LP_MODE
+#define SAADC_CONFIG_LP_MODE 1
+#endif
+
+// <o> SAADC_CONFIG_IRQ_PRIORITY  - Interrupt priority
+
+
+// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
+// <0=> 0 (highest)
+// <1=> 1
+// <2=> 2
+// <3=> 3
+// <4=> 4
+// <5=> 5
+// <6=> 6
+// <7=> 7
+
+#ifndef SAADC_CONFIG_IRQ_PRIORITY
+#define SAADC_CONFIG_IRQ_PRIORITY 6
+#endif
+
+#endif // SAADC_ENABLED
+
+// <e> APP_SCHEDULER_ENABLED - app_scheduler - Events scheduler
+//==========================================================
+#ifndef APP_SCHEDULER_ENABLED
+#define APP_SCHEDULER_ENABLED 1
+#endif
+#if  APP_SCHEDULER_ENABLED
+// <q> APP_SCHEDULER_WITH_PAUSE  - Enabling pause feature
+
+
+#ifndef APP_SCHEDULER_WITH_PAUSE
+#define APP_SCHEDULER_WITH_PAUSE 1
+#endif
+
+// <q> APP_SCHEDULER_WITH_PROFILER  - Enabling scheduler profiling
+
+
+#ifndef APP_SCHEDULER_WITH_PROFILER
+#define APP_SCHEDULER_WITH_PROFILER 1
+#endif
+
+#endif //APP_SCHEDULER_ENABLED
+// </e>
+
+
+
 // <e> GPIOTE_ENABLED - nrf_drv_gpiote - GPIOTE peripheral driver
 //==========================================================
 #ifndef GPIOTE_ENABLED
@@ -126,14 +307,14 @@
 
 
 #ifndef APP_TIMER_CONFIG_USE_SCHEDULER
-#define APP_TIMER_CONFIG_USE_SCHEDULER 0
+#define APP_TIMER_CONFIG_USE_SCHEDULER 1
 #endif
 
 // <q> APP_TIMER_WITH_PROFILER  - Enable app_timer profiling
 
 
 #ifndef APP_TIMER_WITH_PROFILER
-#define APP_TIMER_WITH_PROFILER 0
+#define APP_TIMER_WITH_PROFILER 1
 #endif
 
 // <q> APP_TIMER_KEEPS_RTC_ACTIVE  - Enable RTC always on
@@ -980,6 +1161,57 @@
 #endif
 
 // </e>
+
+// <e> POWER_ENABLED - nrf_drv_power - POWER peripheral driver
+//==========================================================
+#ifndef POWER_ENABLED
+#define POWER_ENABLED 1
+#endif
+// <o> POWER_CONFIG_IRQ_PRIORITY  - Interrupt priority
+
+
+// <i> Priorities 0,2 (nRF51) and 0,1,4,5 (nRF52) are reserved for SoftDevice
+// <0=> 0 (highest)
+// <1=> 1
+// <2=> 2
+// <3=> 3
+// <4=> 4
+// <5=> 5
+// <6=> 6
+// <7=> 7
+
+#ifndef POWER_CONFIG_IRQ_PRIORITY
+#define POWER_CONFIG_IRQ_PRIORITY 7
+#endif
+
+// <q> POWER_CONFIG_DEFAULT_DCDCEN  - The default configuration of main DCDC regulator
+
+
+// <i> This settings means only that components for DCDC regulator are installed and it can be enabled.
+
+#ifndef POWER_CONFIG_DEFAULT_DCDCEN
+#define POWER_CONFIG_DEFAULT_DCDCEN 1
+#endif
+
+// <q> POWER_CONFIG_DEFAULT_DCDCENHV  - The default configuration of High Voltage DCDC regulator
+
+
+// <i> This settings means only that components for DCDC regulator are installed and it can be enabled.
+
+#ifndef POWER_CONFIG_DEFAULT_DCDCENHV
+#define POWER_CONFIG_DEFAULT_DCDCENHV 0
+#endif
+
+// </e>
+
+
+// <q> PPI_ENABLED  - nrf_drv_ppi - PPI peripheral driver
+
+
+#ifndef PPI_ENABLED
+#define PPI_ENABLED 1
+#endif
+
 
 // <e> PPI_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
@@ -2064,6 +2296,118 @@
 #endif
 
 // </e>
+
+
+
+// <e> NRF_PWR_MGMT_ENABLED - nrf_pwr_mgmt - Power management module
+//==========================================================
+#ifndef NRF_PWR_MGMT_ENABLED
+#define NRF_PWR_MGMT_ENABLED 1
+#endif
+// <e> NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED - Enables pin debug in the module.
+
+// <i> Selected pin will be set when CPU is in sleep mode.
+//==========================================================
+#ifndef NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED
+#define NRF_PWR_MGMT_CONFIG_DEBUG_PIN_ENABLED 0
+#endif
+// <o> NRF_PWR_MGMT_SLEEP_DEBUG_PIN  - Pin number
+
+// <0=> 0 (P0.0)
+// <1=> 1 (P0.1)
+// <2=> 2 (P0.2)
+// <3=> 3 (P0.3)
+// <4=> 4 (P0.4)
+// <5=> 5 (P0.5)
+// <6=> 6 (P0.6)
+// <7=> 7 (P0.7)
+// <8=> 8 (P0.8)
+// <9=> 9 (P0.9)
+// <10=> 10 (P0.10)
+// <11=> 11 (P0.11)
+// <12=> 12 (P0.12)
+// <13=> 13 (P0.13)
+// <14=> 14 (P0.14)
+// <15=> 15 (P0.15)
+// <16=> 16 (P0.16)
+// <17=> 17 (P0.17)
+// <18=> 18 (P0.18)
+// <19=> 19 (P0.19)
+// <20=> 20 (P0.20)
+// <21=> 21 (P0.21)
+// <22=> 22 (P0.22)
+// <23=> 23 (P0.23)
+// <24=> 24 (P0.24)
+// <25=> 25 (P0.25)
+// <26=> 26 (P0.26)
+// <27=> 27 (P0.27)
+// <28=> 28 (P0.28)
+// <29=> 29 (P0.29)
+// <30=> 30 (P0.30)
+// <31=> 31 (P0.31)
+// <4294967295=> Not connected
+
+#ifndef NRF_PWR_MGMT_SLEEP_DEBUG_PIN
+#define NRF_PWR_MGMT_SLEEP_DEBUG_PIN 31
+#endif
+
+// </e>
+
+// <q> NRF_PWR_MGMT_CONFIG_CPU_USAGE_MONITOR_ENABLED  - Enables CPU usage monitor.
+
+
+// <i> Module will trace percentage of CPU usage in one second intervals.
+
+#ifndef NRF_PWR_MGMT_CONFIG_CPU_USAGE_MONITOR_ENABLED
+#define NRF_PWR_MGMT_CONFIG_CPU_USAGE_MONITOR_ENABLED 1
+#endif
+
+#define NRF_PWR_MGMT_CONFIG_LOG_LEVEL 3
+
+// <e> NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_ENABLED - Enable standby timeout.
+//==========================================================
+#ifndef NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_ENABLED
+#define NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_ENABLED 0
+#endif
+// <o> NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S - Standby timeout (in seconds).
+// <i> Shutdown procedure will begin no earlier than after this number of seconds.
+
+#ifndef NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S
+#define NRF_PWR_MGMT_CONFIG_STANDBY_TIMEOUT_S 3
+#endif
+
+// </e>
+
+// <q> NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED  - Enables FPU event cleaning.
+
+
+#ifndef NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED
+#define NRF_PWR_MGMT_CONFIG_FPU_SUPPORT_ENABLED 1
+#endif
+
+// <q> NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY  - Blocked shutdown procedure will be retried every second.
+
+
+#ifndef NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY
+#define NRF_PWR_MGMT_CONFIG_AUTO_SHUTDOWN_RETRY 0
+#endif
+
+// <q> NRF_PWR_MGMT_CONFIG_USE_SCHEDULER  - Module will use @ref app_scheduler.
+
+
+#ifndef NRF_PWR_MGMT_CONFIG_USE_SCHEDULER
+#define NRF_PWR_MGMT_CONFIG_USE_SCHEDULER 0
+#endif
+
+// <o> NRF_PWR_MGMT_CONFIG_HANDLER_PRIORITY_COUNT - The number of priorities for module handlers.
+// <i> The number of stages of the shutdown process.
+
+#ifndef NRF_PWR_MGMT_CONFIG_HANDLER_PRIORITY_COUNT
+#define NRF_PWR_MGMT_CONFIG_HANDLER_PRIORITY_COUNT 3
+#endif
+
+// </e>
+
 
 // <e> NRF_PWR_MGMT_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
