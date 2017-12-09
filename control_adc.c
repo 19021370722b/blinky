@@ -34,10 +34,26 @@ static nrf_saadc_value_t m_buffer_pool[2][SAMPLES_IN_BUFFER];
 static nrf_ppi_channel_t m_ppi_channel;
 static uint32_t m_adc_evt_counter;
 
+int last_speed = 0;
+int last_battery_level = 0;
+int last_battery_voltage = 0;
+
+int battery_level()
+{
+    return last_battery_level;
+}
+
 
 static long map(long x, long in_min, long in_max, long out_min, long out_max)
 {
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    long value = (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    if (value < out_min) {
+        value = out_min;
+    }
+    if (value > out_max) {
+        value = out_max;
+    }
+    return value;
 }
 
 
@@ -55,17 +71,23 @@ static int clamp(int value, int min_val, int max_val)
 
 
 
-
-static int avg5(int a, int b, int c, int d, int e)
+static int avg(nrf_saadc_value_t *a, int count, int offset)
 {
-    int sum = a + b + c + d + e;
-    return sum / 5;
+    int sum = 0;
+    for (int i = 0; i < count; i++) {
+        int idx = offset + (i*2);
+        sum += a[idx];
+    }
+    int avg = sum / count;
+    return avg;
 }
 
 
-static int calculate_speed(int reading)
+static void calculate_speed(int reading)
 {
     static int last_reading = -1;
+
+    #define MIN_THRESHOLD 115
 
     reading = clamp(reading, 0, 4095);
 
@@ -75,34 +97,43 @@ static int calculate_speed(int reading)
         reading = last_reading;
     }
 
-
-    int speed = map(reading, 0, 4096, 0, 1000);
-
-    return speed;
+    if (reading < MIN_THRESHOLD) {
+        last_speed = 0;
+    }
+    else {
+        last_speed = map(reading, 100, 4096, 0, 1000);
+    }
 }
 
 
 
-static int calculate_voltage(uint32_t reading)
+static void calculate_voltage(uint32_t reading)
 {
     //matches the constant used in the SAADC configuration for this channel
     float adc_gain = 1.0 / 5.0;
+
 
     // 0.6f is the NRF52 internal reference voltage used for the comparison
     // 4096 is the resolution of the ADC(12 bits)
     float tmp = reading / ((adc_gain / (0.6f)) * 4096);
 
+    // compensate for the hardware voltage divider (maps back to the 4.2V maximum)
+    // matches the voltage divider on the hardware
+    float divider = 2.0 / (0.8 + 2.0);
+    tmp /= divider;
+
+    // convert to millivolts
     int voltage = ((tmp * 1000 + 5) / 10) * 10;
 
-#define MIN_BATTERY_VOLTAGE 2760
-#define MAX_BATTERY_VOLTAGE 4095
 
-    voltage = clamp(voltage, MIN_BATTERY_VOLTAGE, MAX_BATTERY_VOLTAGE);
+    last_battery_voltage = voltage;
 
-    int level = map(voltage, MIN_BATTERY_VOLTAGE, MAX_BATTERY_VOLTAGE, 0, 100);
+    // convert to the percentage value expected in the BLE characteristic schema (uint8 0-100)
+    const int MIN_BATTERY_VOLTAGE = 2700;
+    const int MAX_BATTERY_VOLTAGE = 4175;
+    last_battery_level = map(voltage, MIN_BATTERY_VOLTAGE, MAX_BATTERY_VOLTAGE, 0, 100);
 
-    NRF_LOG_INFO("reading: %d  voltage:%d  level:%d", reading, voltage, level);
-    return voltage;
+    NRF_LOG_INFO("battery reading:%d  voltage:%d  level:%d", reading, last_battery_voltage, last_battery_level);
 }
 
 
@@ -121,26 +152,14 @@ static void control_adc_callback(nrf_drv_saadc_evt_t const *p_event)
         err_code = nrf_drv_saadc_buffer_convert(p_event->data.done.p_buffer, SAMPLES_IN_BUFFER);
         APP_ERROR_CHECK(err_code);
 
-        int speed_avg = avg5(p_event->data.done.p_buffer[0],
-                             p_event->data.done.p_buffer[2],
-                             p_event->data.done.p_buffer[4],
-                             p_event->data.done.p_buffer[6],
-                             p_event->data.done.p_buffer[8]);
+        int speed_avg = avg((p_event->data.done.p_buffer), SAMPLES_PER_CHANNEL, 0);
+        int battery_avg = avg(p_event->data.done.p_buffer, SAMPLES_PER_CHANNEL, 1);
 
+        calculate_speed(speed_avg);
+    //NRF_LOG_INFO("speed avg:%03d, reading: %03d", speed_avg, last_speed);
 
-        int battery_avg = avg5(p_event->data.done.p_buffer[1],
-                               p_event->data.done.p_buffer[3],
-                               p_event->data.done.p_buffer[5],
-                               p_event->data.done.p_buffer[7],
-                               p_event->data.done.p_buffer[9]);
-
-
-
-        int speed = calculate_speed(speed_avg);
-        NRF_LOG_INFO("speed reading: %d", speed);
-
-        int battery = calculate_voltage(battery_avg);
-        NRF_LOG_INFO("battery reading: %d", battery);
+        calculate_voltage(battery_avg);
+    //NRF_LOG_INFO("battery reading: %d", last_battery_level);
     } else {
         NRF_LOG_INFO("unhandled p_event->type %d", p_event->type);
     }
@@ -152,9 +171,18 @@ static void control_adc_callback(nrf_drv_saadc_evt_t const *p_event)
 
 void timer_handler(nrf_timer_event_t event_type, void *p_context)
 {
-    NRF_LOG_INFO("boo!");
 }
 
+
+static bool control_adc_calibration_in_progress = false;
+
+
+static ret_code_t control_adc_calibrate()
+{
+    control_adc_calibration_in_progress = true;
+
+    return NRF_SUCCESS;
+}
 
 
 
@@ -179,6 +207,9 @@ ret_code_t control_adc_init(void)
     battery_channel_config.acq_time = NRF_SAADC_ACQTIME_40US;
 
     err_code = nrf_drv_saadc_init(&saadc_config, control_adc_callback);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = control_adc_calibrate();
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_drv_saadc_channel_init(0, &speed_channel_config);
@@ -217,7 +248,9 @@ ret_code_t control_adc_set_rate(uint32_t ms)
     uint32_t ticks = nrf_drv_timer_ms_to_ticks(&m_timer, ms);
     nrf_drv_timer_extended_compare(&m_timer,
                                    NRF_TIMER_CC_CHANNEL1,
-                                   ticks, NRF_TIMER_SHORT_COMPARE1_CLEAR_MASK, false);
+                                   ticks,
+                                   NRF_TIMER_SHORT_COMPARE1_CLEAR_MASK,
+                                   false);
     nrf_drv_timer_enable(&m_timer);
 
     uint32_t timer_compare_event_addr = nrf_drv_timer_compare_event_address_get(&m_timer,
@@ -239,7 +272,7 @@ ret_code_t control_adc_set_rate(uint32_t ms)
     err_code = nrf_drv_ppi_channel_enable(m_ppi_channel);
     APP_ERROR_CHECK(err_code);
 
-    NRF_LOG_INFO("set rate: %d", ms);
+    NRF_LOG_INFO("set rate: %d ms", ms);
 
     return NRF_SUCCESS;
 
